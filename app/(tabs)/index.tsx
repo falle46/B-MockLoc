@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Play, Square, MapPin, Clock } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Location from 'expo-location';
+// PERUBAHAN UTAMA 1: Menggunakan library yang benar untuk mock location
+import Geolocation from 'react-native-geolocation-service';
 
 interface MockLocation {
   latitude: number;
@@ -47,19 +48,9 @@ export default function HomeScreen() {
     }
   };
 
+  // PERUBAHAN UTAMA 2: Mengedit fungsi startMocking
   const startMocking = async () => {
     try {
-      // Request location permission
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          'Izin Diperlukan',
-          'Aplikasi memerlukan izin lokasi untuk bekerja dengan baik.',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-
       const mockLocation = await AsyncStorage.getItem('selectedLocationForMocking');
       if (!mockLocation) {
         Alert.alert(
@@ -71,18 +62,29 @@ export default function HomeScreen() {
       }
 
       const location: MockLocation = JSON.parse(mockLocation);
-      const startTime = new Date();
       
+      // Mengaktifkan mode mock di level sistem
+      (Geolocation as any).setMockMode(true);
+
+      // Mengirim perintah untuk mengatur lokasi palsu
+      (Geolocation as any).setMockLocation({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        altitude: 0,
+        accuracy: 5,
+        speed: 0,
+        time: new Date().getTime(),
+      });
+
+      // Sisa kode Anda untuk update UI sudah benar
+      const startTime = new Date();
       setIsMocking(true);
       setCurrentMockLocation(location);
       setMockingStartTime(startTime);
       
-      // Save state
       await AsyncStorage.setItem('isMocking', 'true');
       await AsyncStorage.setItem('currentMockLocation', JSON.stringify(location));
       await AsyncStorage.setItem('mockingStartTime', startTime.toISOString());
-      
-      // Save to history
       await saveMockingSession(location, startTime);
       
       Alert.alert(
@@ -91,18 +93,22 @@ export default function HomeScreen() {
         [{ text: 'OK' }]
       );
     } catch (error) {
-      Alert.alert('Error', 'Gagal memulai mocking lokasi.');
+      Alert.alert('Error', 'Gagal memulai mocking lokasi. Pastikan izin dan Opsi Pengembang sudah benar.');
       console.error('Error starting location mocking:', error);
     }
   };
 
+  // PERUBAHAN UTAMA 3: Mengedit fungsi stopMocking
   const stopMocking = async () => {
     try {
+      // Mengirim perintah untuk menonaktifkan mode mock di level sistem
+      (Geolocation as any).setMockMode(false);
+
+      // Sisa kode Anda untuk membersihkan UI sudah benar
       setIsMocking(false);
       setCurrentMockLocation(null);
       setMockingStartTime(null);
       
-      // Clear state
       await AsyncStorage.removeItem('isMocking');
       await AsyncStorage.removeItem('currentMockLocation');
       await AsyncStorage.removeItem('mockingStartTime');
@@ -129,7 +135,7 @@ export default function HomeScreen() {
         id: Date.now(),
         location,
         startTime: startTime.toISOString(),
-        duration: 0, // Will be updated when stopped
+        duration: 0,
       };
       
       history.push(session);
