@@ -35,18 +35,3 @@ allprojects {
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
-
-// KODE TAMBAHAN DIMULAI DI SINI
-subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            android {
-                buildTypes {
-                    release {
-                        // This ensures release builds are available for all modules
-                    }
-                }
-            }
-        }
-    }
-}
